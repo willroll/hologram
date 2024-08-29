@@ -177,7 +177,8 @@ func main() {
 	}
 
 	if *noUpdateAttr != false {
-		config.LDAP.NoUpdateAttr = true
+		config.LDAP.NoUpdateAttr = *noUpdateAttr
+
 	}
 
 	var stats g2s.Statter
