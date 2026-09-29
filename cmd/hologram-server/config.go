@@ -29,7 +29,7 @@ type LDAP struct {
 	GroupClassAttr  string `json:"groupclassattr"`
 	PubKeysAttr     string `json:"pubkeysattr"`
 	RoleTimeoutAttr string `json:"roletimeoutattr"`
-	NoUpdateAttr    bool   `json:"noupdateattr"`
+	NoUpdate        bool   `json:"noupdate"`
 }
 
 type Config struct {

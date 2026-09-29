@@ -74,9 +74,13 @@ requiring an actual LDAP server.
 type StubLDAPServer struct {
 	Keys      []string
 	OtherKeys []string
+	// SearchCount records how many times Search has been called, which lets
+	// tests assert whether a cache Update() actually hit the LDAP server.
+	SearchCount int
 }
 
 func (sls *StubLDAPServer) Search(s *ldap.SearchRequest) (*ldap.SearchResult, error) {
+	sls.SearchCount++
 	return &ldap.SearchResult{
 		Entries: []*ldap.Entry{
 			&ldap.Entry{
@@ -222,6 +226,44 @@ func TestLDAPUserCache(t *testing.T) {
 
 			Convey("Then it should update LDAP again and find the user.", func() {
 				So(success, ShouldEqual, true)
+			})
+		})
+
+		Convey("When noUpdate is set and a user cannot be found in the cache", func() {
+			// Build a cache with the on-miss refresh disabled.
+			s := &StubLDAPServer{
+				Keys: []string{keyValue, testPublicKey},
+			}
+			lc, err := server.NewLDAPUserCache(s, g2s.Noop(), "cn", "dc=testdn,dc=com", false, "", "", "", "groupOfNames", "sshPublicKey", "", true)
+			So(err, ShouldBeNil)
+			So(lc, ShouldNotBeNil)
+
+			// Make the cache stale: swap in a key we don't have, refresh, then
+			// swap the real key back on the server side only. The cache now
+			// holds the wrong key for this user.
+			oldKey := s.Keys[0]
+			s.Keys[0] = testPublicKey
+			lc.Update()
+			s.Keys[0] = oldKey
+
+			// Record the search count so we can prove Authenticate does not
+			// trigger another LDAP fetch on a miss.
+			searchesBefore := s.SearchCount
+
+			success := false
+			for i := 0; i < len(keys); i++ {
+				challenge := randomBytes(64)
+				sig, err := agent.Sign(keys[i], challenge)
+				if err != nil {
+					t.Fatal(err)
+				}
+				verifiedUser, _ := lc.Authenticate("ericallen", challenge, sig)
+				success = success || (verifiedUser != nil)
+			}
+
+			Convey("Then it should not refresh LDAP and should not find the user.", func() {
+				So(success, ShouldEqual, false)
+				So(s.SearchCount, ShouldEqual, searchesBefore)
 			})
 		})
 

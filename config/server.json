@@ -13,7 +13,7 @@
     "groupclassattr": "groupOfNames",
     "pubkeysattr": "sshPublicKey",
     "roletimeoutattr": "timeoutAttribute",
-    "noupdateattr": false
+    "noupdate": false
   },
   "aws": {
     "account":      "123456789010",

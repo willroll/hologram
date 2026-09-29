@@ -223,8 +223,9 @@ func (luc *ldapUserCache) Authenticate(username string, challenge []byte, sshSig
 		log.Debug("Could not find %s in the LDAP cache; updating from the server.", username)
 		luc.stats.Counter(1.0, "ldapCacheMiss", 1)
 
-		// We should update LDAP cache again to retry keys.
-		if !(luc.noUpdate) {
+		// We should update LDAP cache again to retry keys, unless the
+		// on-miss refresh has been disabled.
+		if !luc.noUpdate {
 			luc.Update()
 		}
 		// Retry verification.
